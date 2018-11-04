@@ -1,7 +1,5 @@
 # arduino-mqtt-led
-Leds controlled by mqtt with arduino.
-
-Based off of the examples from  <https://github.com/knolleary/pubsubclient>
+Leds controlled by mqtt with arduino. Based off of the examples from <https://github.com/knolleary/pubsubclient>
 
 ## Up Next...
 * Proto-multithreading so I can run a rgb rainbow loop <https://github.com/ivanseidel/ArduinoThread>
