@@ -326,10 +326,6 @@ void setup()
     // Set the default values for the powers switch
     pinMode(PWR_PIN, OUTPUT);
     digitalWrite(PWR_PIN, LOW);
-
-    // Set the default values for the the RGB lights (white)
-    int white[3] = { 200, 100, 25 };
-    setRGB(white);
 }
 
 void loop()
