@@ -129,7 +129,7 @@ void togglePin(int pin, char* data)
     }
 }
 
-void handleRGBTopic(char* data)
+void handleRGBTopic(char *data)
 {
     // The json buffer
     StaticJsonDocument<256> doc;
@@ -184,7 +184,7 @@ void publishRGBStatus()
     client.publish("stat/arduino/mega/rgb", output);
 }
 
-void publishPinStatus(char* topic_postfix, int pin)
+void publishPinStatus(char *topic_postfix, int pin)
 {
     char topic[30] = "stat/arduino/mega/";
     strcat(topic, topic_postfix);

@@ -7,7 +7,7 @@
  *          - If the incoming message is "1" it turn the led on
  *          - If the incoming message is "0" it turns the led off 
  */
-
+#include <Arduino.h>
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
@@ -52,7 +52,8 @@ void callback(char* topic, byte* payload, unsigned int length)
     //debug_topic(topic);
     //debug_payload(payload, length);
 
-    char buff[100]; // payload buffer
+    char buff[(length + 1)]; // payload buffer
+    memset(buff, '\0', (length + 1));
 
     for (int i=0; i<length; i++) {
         buff[i] = (char)payload[i];
