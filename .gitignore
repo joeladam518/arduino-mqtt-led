@@ -1,9 +1,12 @@
 .vscode/
 .idea/
 
-config.h # configs that hold personal info, wifi passwords, etc
+# ignore config files 
+config.h 
 
-*.swp  # vim
-*.orig # git merge tool
-*.idea # php storm
-*.log  # log files 
+# vim
+*.swp
+# git merge tool
+*.orig 
+# log files 
+*.log  
