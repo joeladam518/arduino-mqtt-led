@@ -4,15 +4,11 @@
  *  It connects to an MQTT server then does some stuff
  */
 
+#include "config.h"
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-
-// Update these with values suitable for your network.
-byte mac[] = { 0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress ip(192, 168, 1, 50);
-IPAddress server(192, 168, 1, 23);
 
 EthernetClient ethClient;
 PubSubClient client(ethClient);
@@ -39,34 +35,8 @@ static const int B = 2;
 int currentcolor[3] = { 0, 0, 0 };
 
 //--------------------------------------------------------------------------------------------------
-/* Debug functions */
-
-// void debug_topic(char* topic)
-// {
-//     Serial.print("    Topic: ");
-//     Serial.println(topic);
-// }
-
-// void debug_payload(byte* payload, unsigned int length)
-// {
-//     Serial.print("    Payload: ");
-//     for (int i = 0; i < length; i++) {
-//         Serial.print((char)payload[i]);
-//     }
-//     Serial.println();
-// }
-
-// void debug_buffer(char* buffer)
-// {
-//     Serial.print("    Buffer:  ");
-//     Serial.print(buffer);
-//     Serial.println();
-// }
-
-//--------------------------------------------------------------------------------------------------
 /* RGB functions */
 
-// Sets an RGB color
 void setRGB(int color[3])
 {
     if (color[R] < 0) { color[R] = 0; }
@@ -102,41 +72,14 @@ void fade(int startcolor[], int endcolor[], int fadeTime)
     setRGB(endcolor);
     delay(1);
 }
-//--------------------------------------------------------------------------------------------------
-/* Helper functions */
-
-// Toggle the pin
-void togglePin(int pin)
-{
-    digitalWrite(pin, !digitalRead(pin));
-}
-
-// Toggle the pin
-void togglePin(int pin, char* data)
-{
-    if (
-        strcmp(data, "1") == 0
-    ||  strcmp(data, "on") == 0
-    ||  strcmp(data, "ON") == 0
-    ) {
-        digitalWrite(pin, HIGH);
-    } else if (
-        strcmp(data, "0") == 0
-    ||  strcmp(data, "off") == 0
-    ||  strcmp(data, "OFF") == 0
-    ) {
-        digitalWrite(pin, LOW);
-    }
-}
 
 void handleRGBTopic(char *data)
 {
     // The json buffer
     StaticJsonDocument<256> doc;
-
     // Parse the json object
     DeserializationError error = deserializeJson(doc, data);
-
+    // Handle error
     if (error) {
         Serial.println("DeserializationError!");
         Serial.print("Error: ");
@@ -168,10 +111,35 @@ void handleRGBTopic(char *data)
     }
 }
 
+//--------------------------------------------------------------------------------------------------
+/* Functions */
+
+void togglePin(int pin)
+{
+    digitalWrite(pin, !digitalRead(pin));
+}
+
+void togglePin(int pin, char* data)
+{
+    if (
+        strcmp(data, "1") == 0
+    ||  strcmp(data, "on") == 0
+    ||  strcmp(data, "ON") == 0
+    ) {
+        digitalWrite(pin, HIGH);
+    } else if (
+        strcmp(data, "0") == 0
+    ||  strcmp(data, "off") == 0
+    ||  strcmp(data, "OFF") == 0
+    ) {
+        digitalWrite(pin, LOW);
+    }
+}
+
 void publishRGBStatus()
 {
-    const int capacity = JSON_OBJECT_SIZE(3);
     char output[128];
+    const int capacity = JSON_OBJECT_SIZE(3);
     
     StaticJsonDocument<capacity> doc;
 
@@ -181,25 +149,23 @@ void publishRGBStatus()
 
     serializeJson(doc, output, sizeof(output));
 
-    client.publish("stat/arduino/mega/rgb", output);
+    client.publish(PUB_RGB, output);
 }
 
 void publishPinStatus(char *topic_postfix, int pin)
 {
-    char topic[30] = "stat/arduino/mega/";
+    char topic[30] = PUB_BASE;
     strcat(topic, topic_postfix);
     
     if (digitalRead(pin)) {
-        client.publish(topic, "on");
+        client.publish(topic, "ON");
     } else {
-        client.publish(topic, "off");
+        client.publish(topic, "OFF");
     }
 }
 
 void publishDeviceStatus()
 {
-    Serial.println("Asked for device status!");
-
     publishRGBStatus();
     publishPinStatus("pwr", PWR_PIN);
     publishPinStatus("tw1", TW1);
@@ -213,44 +179,39 @@ void publishDeviceStatus()
 // The PubSubClient callback function
 void callback(char* topic, byte* payload, unsigned int length)
 {
-    //Serial.println("Message arrived!");
-    //debug_topic(topic);
-    //debug_payload(payload, length);
-
-    char buffer[128]; // payload buffer
-    memset(buffer, 0, sizeof(buffer)); // empty the buffer
+    char buffer[128];                     // Deifne a payload buffer
+    memset(buffer, '\0', sizeof(buffer)); // Then makesure it's empty
 
     for (int i=0; i<length; i++) {
         buffer[i] = (char)payload[i];
     }
 
-    //debug_buffer(buffer);
-
-    if (strcmp(topic, "cmd/arduino/mega/rgb") == 0) {
+    // Handle the topic
+    if (strcmp(topic, SUB_RGB) == 0) {
 
         handleRGBTopic(buffer);
 
-    } else if (strcmp(topic, "cmd/arduino/mega/pwr") == 0) {
+    } else if (strcmp(topic, SUB_PWR) == 0) {
 
         togglePin(PWR_PIN, buffer);
         publishPinStatus("pwr", PWR_PIN);
 
-    } else if (strcmp(topic, "cmd/arduino/mega/tw1") == 0) {
+    } else if (strcmp(topic, SUB_TW1) == 0) {
 
         togglePin(TW1);
         publishPinStatus("tw1", TW1);
 
-    } else if (strcmp(topic, "cmd/arduino/mega/tw2") == 0) {
+    } else if (strcmp(topic, SUB_TW2) == 0) {
 
         togglePin(TW2);
         publishPinStatus("tw2", TW2);
 
-    } else if (strcmp(topic, "cmd/arduino/mega/tw3") == 0) {
+    } else if (strcmp(topic, SUB_TW3) == 0) {
 
         togglePin(TW3);
         publishPinStatus("tw3", TW3);
 
-    } else if (strcmp(topic, "cmd/arduino/mega/status") == 0) {
+    } else if (strcmp(topic, SUB_STATUS) == 0) {
 
         publishDeviceStatus();
 
@@ -267,17 +228,16 @@ void reconnect()
     while (!client.connected()) {
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect("arduinoLED")) {
-            Serial.println("connected");
-            // Once connected, publish an announcement...
-            client.publish("confirm", "arduinoLED has connected to the broker");
+        if (client.connect("ArduinoMegaLED")) {
+            Serial.println("connected"); // Once connected, publish an announcement...
+            client.publish(PUB_CONFIRM, "ArduinoMegaLED has connected to the broker");
             // ... and resubscribe
-            client.subscribe("cmd/arduino/mega/rgb");
-            client.subscribe("cmd/arduino/mega/pwr");
-            client.subscribe("cmd/arduino/mega/tw1");
-            client.subscribe("cmd/arduino/mega/tw2");
-            client.subscribe("cmd/arduino/mega/tw3");
-            client.subscribe("cmd/arduino/mega/status");
+            client.subscribe(SUB_RGB);
+            client.subscribe(SUB_PWR);
+            client.subscribe(SUB_TW1);
+            client.subscribe(SUB_TW2);
+            client.subscribe(SUB_TW3);
+            client.subscribe(SUB_STATUS);
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
@@ -294,21 +254,20 @@ void setup()
 {
     Serial.begin(115200);
 
-    client.setServer(server, 1883);
+    client.setServer(MQTT_BROKER, MQTT_PORT);
     client.setCallback(callback);
 
-    Ethernet.begin(mac, ip);
+    if (Ethernet.begin(mac) == 0) {
+        Serial.println("Failed to configure Ethernet using DHCP, using Static Mode");
+        Ethernet.begin(mac, ip, dns, gateway, subnet);
+    }
 
-    // Allow the hardware to sort itself out
-    delay(1500);
+    Serial.print("My IP address: ");
+    Serial.println(Ethernet.localIP());
+
+    delay(1500); // Allow the hardware to sort itself out
 
     Serial.println("Start!");
-    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-        Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
-        while (true) {
-            delay(1); // do nothing, no point running without Ethernet hardware
-        }
-    }
 
     // Set the RGB LED Pins
     pinMode(RED_PIN, OUTPUT);
