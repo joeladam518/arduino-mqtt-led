@@ -55,8 +55,7 @@ void setRGB(int color[3])
     currentcolor[B] = color[B];
 }
 
-// Controls a smooth lighting fade
-void fade(int startcolor[], int endcolor[], int fadeTime)
+void fade(int *startcolor, int *endcolor, int fadeTime)
 {
     int color[3];
 
@@ -75,11 +74,10 @@ void fade(int startcolor[], int endcolor[], int fadeTime)
 
 void handleRGBTopic(char *data)
 {
-    // The json buffer
+    // Parse json
     StaticJsonDocument<256> doc;
-    // Parse the json object
     DeserializationError error = deserializeJson(doc, data);
-    // Handle error
+    
     if (error) {
         Serial.println("DeserializationError!");
         Serial.print("Error: ");
@@ -140,7 +138,6 @@ void publishRGBStatus()
 {
     char output[128];
     const int capacity = JSON_OBJECT_SIZE(3);
-    
     StaticJsonDocument<capacity> doc;
 
     doc["r"] = currentcolor[R];
@@ -152,37 +149,63 @@ void publishRGBStatus()
     client.publish(PUB_RGB, output);
 }
 
-void publishPinStatus(char *topic_postfix, int pin)
+void publishPinResult(char *topic, int pinState)
 {
-    char topic[30] = PUB_BASE;
-    strcat(topic, topic_postfix);
+    char output[128];
+    char result_topic[40];
+
+    memset(result_topic, '\0', sizeof(result_topic)); 
+    strcpy(result_topic, topic);
+    strcat(result_topic, "/RESULT");
     
-    if (digitalRead(pin)) {
+    const int capacity = JSON_OBJECT_SIZE(1);
+    StaticJsonDocument<capacity> doc;
+
+    if (pinState) {
+        doc["POWER"] = "ON";
+    } else {
+        doc["POWER"] = "OFF";
+    }
+
+    serializeJson(doc, output, sizeof(output));
+    client.publish(result_topic, output);
+}
+
+int publishPinStatus(char *topic, int pin)
+{
+    int pinState = digitalRead(pin);
+    
+    if (pinState) {
         client.publish(topic, "ON");
     } else {
         client.publish(topic, "OFF");
     }
+
+    return pinState;
 }
 
 void publishDeviceStatus()
 {
     publishRGBStatus();
-    publishPinStatus("pwr", PWR_PIN);
-    publishPinStatus("tw1", TW1);
-    publishPinStatus("tw2", TW2);
-    publishPinStatus("tw3", TW3);
+    publishPinStatus(PUB_TW1, TW1);
+    publishPinStatus(PUB_TW2, TW2);
+    publishPinStatus(PUB_TW3, TW3);
+    publishPinStatus(PUB_PWR_LOWER, PWR_PIN);
+    publishPinStatus(PUB_PWR_UPPER, PWR_PIN);
 }
 
 //--------------------------------------------------------------------------------------------------
 /* MQTT functions */
 
 // The PubSubClient callback function
-void callback(char* topic, byte* payload, unsigned int length)
+void callback(char *topic, byte *payload, unsigned int length)
 {
-    char buffer[128];                     // Deifne a payload buffer
-    memset(buffer, '\0', sizeof(buffer)); // Then makesure it's empty
+    // Payload buffer
+    char buffer[128];   
+    // Makesure it's empty                  
+    memset(buffer, '\0', sizeof(buffer)); 
 
-    for (int i=0; i<length; i++) {
+    for (int i = 0; i < length; i++) {
         buffer[i] = (char)payload[i];
     }
 
@@ -191,25 +214,30 @@ void callback(char* topic, byte* payload, unsigned int length)
 
         handleRGBTopic(buffer);
 
-    } else if (strcmp(topic, SUB_PWR) == 0) {
+    } else if (strcmp(topic, SUB_PWR_LOWER) == 0) {
 
         togglePin(PWR_PIN, buffer);
-        publishPinStatus("pwr", PWR_PIN);
-
+        publishPinResult(PUB_PWR_LOWER, publishPinStatus(PUB_PWR_LOWER, PWR_PIN));
+    
+    } else if (strcmp(topic, SUB_PWR_UPPER) == 0) {
+    
+        togglePin(PWR_PIN, buffer);
+        publishPinResult(PUB_PWR_UPPER, publishPinStatus(PUB_PWR_UPPER, PWR_PIN));
+    
     } else if (strcmp(topic, SUB_TW1) == 0) {
 
         togglePin(TW1);
-        publishPinStatus("tw1", TW1);
+        publishPinStatus(PUB_TW1, TW1);
 
     } else if (strcmp(topic, SUB_TW2) == 0) {
 
         togglePin(TW2);
-        publishPinStatus("tw2", TW2);
+        publishPinStatus(PUB_TW2, TW2);
 
     } else if (strcmp(topic, SUB_TW3) == 0) {
 
         togglePin(TW3);
-        publishPinStatus("tw3", TW3);
+        publishPinStatus(PUB_TW3, TW3);
 
     } else if (strcmp(topic, SUB_STATUS) == 0) {
 
@@ -233,10 +261,11 @@ void reconnect()
             client.publish(PUB_CONFIRM, "ArduinoMegaLED has connected to the broker");
             // ... and resubscribe
             client.subscribe(SUB_RGB);
-            client.subscribe(SUB_PWR);
             client.subscribe(SUB_TW1);
             client.subscribe(SUB_TW2);
             client.subscribe(SUB_TW3);
+            client.subscribe(SUB_PWR_LOWER);
+            client.subscribe(SUB_PWR_UPPER);
             client.subscribe(SUB_STATUS);
         } else {
             Serial.print("failed, rc=");
