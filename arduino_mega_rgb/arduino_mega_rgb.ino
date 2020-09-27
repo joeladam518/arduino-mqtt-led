@@ -210,36 +210,36 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
 
     // Handle the topic
-    if (strcmp(topic, SUB_RGB) == 0) {
+    if (strcmp(topic, CMD_RGB) == 0) {
 
         handleRGBTopic(buffer);
 
-    } else if (strcmp(topic, SUB_PWR_LOWER) == 0) {
+    } else if (strcmp(topic, CMD_PWR_LOWER) == 0) {
 
         togglePin(PWR_PIN, buffer);
         publishPinResult(PUB_PWR_LOWER, publishPinStatus(PUB_PWR_LOWER, PWR_PIN));
     
-    } else if (strcmp(topic, SUB_PWR_UPPER) == 0) {
+    } else if (strcmp(topic, CMD_PWR_UPPER) == 0) {
     
         togglePin(PWR_PIN, buffer);
         publishPinResult(PUB_PWR_UPPER, publishPinStatus(PUB_PWR_UPPER, PWR_PIN));
     
-    } else if (strcmp(topic, SUB_TW1) == 0) {
+    } else if (strcmp(topic, CMD_TW1) == 0) {
 
         togglePin(TW1);
         publishPinStatus(PUB_TW1, TW1);
 
-    } else if (strcmp(topic, SUB_TW2) == 0) {
+    } else if (strcmp(topic, CMD_TW2) == 0) {
 
         togglePin(TW2);
         publishPinStatus(PUB_TW2, TW2);
 
-    } else if (strcmp(topic, SUB_TW3) == 0) {
+    } else if (strcmp(topic, CMD_TW3) == 0) {
 
         togglePin(TW3);
         publishPinStatus(PUB_TW3, TW3);
 
-    } else if (strcmp(topic, SUB_STATUS) == 0) {
+    } else if (strcmp(topic, CMD_STATUS_UPPER) == 0 || strcmp(topic, CMD_STATUS_LOWER) == 0) {
 
         publishDeviceStatus();
 
@@ -257,16 +257,10 @@ void reconnect()
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
         if (client.connect("ArduinoMegaLED")) {
-            Serial.println("connected"); // Once connected, publish an announcement...
-            client.publish(PUB_CONFIRM, "ArduinoMegaLED has connected to the broker");
+            Serial.println("ArduinoMegaLED has connected."); // Once connected, publish an announcement...
+            client.publish(STAT_CONNECTED, "ArduinoMegaLED has connected.");
             // ... and resubscribe
-            client.subscribe(SUB_RGB);
-            client.subscribe(SUB_TW1);
-            client.subscribe(SUB_TW2);
-            client.subscribe(SUB_TW3);
-            client.subscribe(SUB_PWR_LOWER);
-            client.subscribe(SUB_PWR_UPPER);
-            client.subscribe(SUB_STATUS);
+            client.subscribe(CMD_ALL);
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
