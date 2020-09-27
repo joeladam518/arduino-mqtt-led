@@ -146,7 +146,7 @@ void publishRGBStatus()
 
     serializeJson(doc, output, sizeof(output));
 
-    client.publish(PUB_RGB, output);
+    client.publish(STAT_RGB, output);
 }
 
 void publishPinResult(char *topic, int pinState)
@@ -187,11 +187,11 @@ int publishPinStatus(char *topic, int pin)
 void publishDeviceStatus()
 {
     publishRGBStatus();
-    publishPinStatus(PUB_TW1, TW1);
-    publishPinStatus(PUB_TW2, TW2);
-    publishPinStatus(PUB_TW3, TW3);
-    publishPinStatus(PUB_PWR_LOWER, PWR_PIN);
-    publishPinStatus(PUB_PWR_UPPER, PWR_PIN);
+    publishPinStatus(STAT_TW1, TW1);
+    publishPinStatus(STAT_TW2, TW2);
+    publishPinStatus(STAT_TW3, TW3);
+    publishPinStatus(STAT_PWR_LOWER, PWR_PIN);
+    publishPinStatus(STAT_PWR_UPPER, PWR_PIN);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -217,27 +217,27 @@ void callback(char *topic, byte *payload, unsigned int length)
     } else if (strcmp(topic, CMD_PWR_LOWER) == 0) {
 
         togglePin(PWR_PIN, buffer);
-        publishPinResult(PUB_PWR_LOWER, publishPinStatus(PUB_PWR_LOWER, PWR_PIN));
+        publishPinResult(STAT_PWR_LOWER, publishPinStatus(STAT_PWR_LOWER, PWR_PIN));
     
     } else if (strcmp(topic, CMD_PWR_UPPER) == 0) {
     
         togglePin(PWR_PIN, buffer);
-        publishPinResult(PUB_PWR_UPPER, publishPinStatus(PUB_PWR_UPPER, PWR_PIN));
+        publishPinResult(STAT_PWR_UPPER, publishPinStatus(STAT_PWR_UPPER, PWR_PIN));
     
     } else if (strcmp(topic, CMD_TW1) == 0) {
 
         togglePin(TW1);
-        publishPinStatus(PUB_TW1, TW1);
+        publishPinStatus(STAT_TW1, TW1);
 
     } else if (strcmp(topic, CMD_TW2) == 0) {
 
         togglePin(TW2);
-        publishPinStatus(PUB_TW2, TW2);
+        publishPinStatus(STAT_TW2, TW2);
 
     } else if (strcmp(topic, CMD_TW3) == 0) {
 
         togglePin(TW3);
-        publishPinStatus(PUB_TW3, TW3);
+        publishPinStatus(STAT_TW3, TW3);
 
     } else if (strcmp(topic, CMD_STATUS_UPPER) == 0 || strcmp(topic, CMD_STATUS_LOWER) == 0) {
 
