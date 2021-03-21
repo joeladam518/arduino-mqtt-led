@@ -1,10 +1,6 @@
-/*
- *  MQTT RGB LED example
- *
- *  It connects to an MQTT server then does some stuff
- */
-
 #include "config.h"
+#include <Arduino.h>
+#include <HardwareSerial.h>
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
@@ -77,7 +73,7 @@ void handleRGBTopic(char *data)
     // Parse json
     StaticJsonDocument<256> doc;
     DeserializationError error = deserializeJson(doc, data);
-    
+
     if (error) {
         Serial.println("DeserializationError!");
         Serial.print("Error: ");
@@ -154,10 +150,10 @@ void publishPinResult(char *topic, int pinState)
     char output[128];
     char result_topic[40];
 
-    memset(result_topic, '\0', sizeof(result_topic)); 
+    memset(result_topic, '\0', sizeof(result_topic));
     strcpy(result_topic, topic);
     strcat(result_topic, "/RESULT");
-    
+
     const int capacity = JSON_OBJECT_SIZE(1);
     StaticJsonDocument<capacity> doc;
 
@@ -174,7 +170,7 @@ void publishPinResult(char *topic, int pinState)
 int publishPinStatus(char *topic, int pin)
 {
     int pinState = digitalRead(pin);
-    
+
     if (pinState) {
         client.publish(topic, "ON");
     } else {
@@ -201,9 +197,9 @@ void publishDeviceStatus()
 void callback(char *topic, byte *payload, unsigned int length)
 {
     // Payload buffer
-    char buffer[128];   
-    // Makesure it's empty                  
-    memset(buffer, '\0', sizeof(buffer)); 
+    char buffer[128];
+    // Makesure it's empty
+    memset(buffer, '\0', sizeof(buffer));
 
     for (int i = 0; i < length; i++) {
         buffer[i] = (char)payload[i];
@@ -218,12 +214,12 @@ void callback(char *topic, byte *payload, unsigned int length)
 
         togglePin(PWR_PIN, buffer);
         publishPinResult(STAT_PWR_LOWER, publishPinStatus(STAT_PWR_LOWER, PWR_PIN));
-    
+
     } else if (strcmp(topic, CMD_PWR_UPPER) == 0) {
-    
+
         togglePin(PWR_PIN, buffer);
         publishPinResult(STAT_PWR_UPPER, publishPinStatus(STAT_PWR_UPPER, PWR_PIN));
-    
+
     } else if (strcmp(topic, CMD_TW1) == 0) {
 
         togglePin(TW1);
